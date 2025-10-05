@@ -4,7 +4,9 @@ const cors = require('cors');
 const path = require('path');
 
 const app = express();
-const PORT = 3000;
+
+// Use Render’s port in production or 3000 locally
+const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
@@ -16,14 +18,13 @@ const db = new sqlite3.Database('./helpdesk.db', (err) => {
     if (err) {
         console.error('Error opening database:', err.message);
     } else {
-        console.log('Connected to SQLite database');
+        console.log('✅ Connected to SQLite database');
         initializeDatabase();
     }
 });
 
 // Create tables
 function initializeDatabase() {
-    // Tickets table
     db.run(`
         CREATE TABLE IF NOT EXISTS tickets (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,10 +39,9 @@ function initializeDatabase() {
         )
     `, (err) => {
         if (err) console.error('Error creating tickets table:', err);
-        else console.log('Tickets table ready');
+        else console.log('📋 Tickets table ready');
     });
 
-    // Comments table
     db.run(`
         CREATE TABLE IF NOT EXISTS comments (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -53,101 +53,63 @@ function initializeDatabase() {
         )
     `, (err) => {
         if (err) console.error('Error creating comments table:', err);
-        else console.log('Comments table ready');
+        else console.log('💬 Comments table ready');
     });
 }
 
-// Calculate SLA due date based on priority
+// Calculate SLA due date
 function calculateSLADueDate(priority) {
     const now = new Date();
-    let hours = 24; // Default
-
+    let hours = 24;
     switch (priority) {
-        case 'High':
-            hours = 4;
-            break;
-        case 'Medium':
-            hours = 12;
-            break;
-        case 'Low':
-            hours = 24;
-            break;
+        case 'High': hours = 4; break;
+        case 'Medium': hours = 12; break;
+        case 'Low': hours = 24; break;
     }
-
     return new Date(now.getTime() + hours * 60 * 60 * 1000);
 }
 
-// API Routes
+// Serve frontend pages (optional)
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
+app.get('/database', (req, res) => res.sendFile(path.join(__dirname, 'database.html')));
 
-// Serve HTML pages
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-app.get('/admin', (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin.html'));
-});
-
-app.get('/database', (req, res) => {
-    res.sendFile(path.join(__dirname, 'database.html'));
-});
-
-// Get all tickets
+// API: Get all tickets
 app.get('/api/tickets', (req, res) => {
-    const query = 'SELECT * FROM tickets ORDER BY created_at DESC';
-    
-    db.all(query, [], (err, rows) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
+    db.all('SELECT * FROM tickets ORDER BY created_at DESC', [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
         res.json(rows);
     });
 });
 
-// Get single ticket
+// API: Get single ticket
 app.get('/api/tickets/:id', (req, res) => {
-    const query = 'SELECT * FROM tickets WHERE id = ?';
-    
-    db.get(query, [req.params.id], (err, row) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        if (!row) {
-            res.status(404).json({ error: 'Ticket not found' });
-            return;
-        }
+    db.get('SELECT * FROM tickets WHERE id = ?', [req.params.id], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!row) return res.status(404).json({ error: 'Ticket not found' });
         res.json(row);
     });
 });
 
-// Create new ticket
+// API: Create new ticket
 app.post('/api/tickets', (req, res) => {
     const { title, description, category, priority } = req.body;
-    
-    if (!title || !description || !category || !priority) {
-        res.status(400).json({ error: 'Missing required fields' });
-        return;
-    }
+    if (!title || !description || !category || !priority)
+        return res.status(400).json({ error: 'Missing required fields' });
 
     const slaDueDate = calculateSLADueDate(priority);
-    
     const query = `
         INSERT INTO tickets (title, description, category, priority, sla_due_date)
         VALUES (?, ?, ?, ?, ?)
     `;
-    
+
     db.run(query, [title, description, category, priority, slaDueDate.toISOString()], function(err) {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        
-        // Add initial comment
-        const commentQuery = 'INSERT INTO comments (ticket_id, comment, user_type) VALUES (?, ?, ?)';
-        db.run(commentQuery, [this.lastID, 'Ticket created', 'system']);
-        
+        if (err) return res.status(500).json({ error: err.message });
+
+        db.run('INSERT INTO comments (ticket_id, comment, user_type) VALUES (?, ?, ?)',
+            [this.lastID, 'Ticket created', 'system']
+        );
+
         res.json({
             id: this.lastID,
             message: 'Ticket created successfully',
@@ -156,103 +118,67 @@ app.post('/api/tickets', (req, res) => {
     });
 });
 
-// Update ticket status
+// API: Update ticket status
 app.put('/api/tickets/:id', (req, res) => {
     const { status } = req.body;
-    
-    if (!status) {
-        res.status(400).json({ error: 'Status is required' });
-        return;
-    }
+    if (!status) return res.status(400).json({ error: 'Status is required' });
 
-    const query = 'UPDATE tickets SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?';
-    
-    db.run(query, [status, req.params.id], function(err) {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
+    db.run('UPDATE tickets SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [status, req.params.id],
+        function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            if (this.changes === 0) return res.status(404).json({ error: 'Ticket not found' });
+
+            db.run('INSERT INTO comments (ticket_id, comment, user_type) VALUES (?, ?, ?)',
+                [req.params.id, `Status changed to: ${status}`, 'system']
+            );
+
+            res.json({ message: 'Ticket updated successfully' });
         }
-        
-        if (this.changes === 0) {
-            res.status(404).json({ error: 'Ticket not found' });
-            return;
-        }
-        
-        // Add comment for status change
-        const commentQuery = 'INSERT INTO comments (ticket_id, comment, user_type) VALUES (?, ?, ?)';
-        db.run(commentQuery, [req.params.id, `Status changed to: ${status}`, 'system']);
-        
-        res.json({ message: 'Ticket updated successfully' });
-    });
+    );
 });
 
-// Get comments for a ticket
+// API: Get comments for a ticket
 app.get('/api/tickets/:id/comments', (req, res) => {
-    const query = 'SELECT * FROM comments WHERE ticket_id = ? ORDER BY created_at ASC';
-    
-    db.all(query, [req.params.id], (err, rows) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
+    db.all('SELECT * FROM comments WHERE ticket_id = ? ORDER BY created_at ASC',
+        [req.params.id],
+        (err, rows) => {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json(rows);
         }
-        res.json(rows);
-    });
+    );
 });
 
-// Add comment to ticket
+// API: Add comment
 app.post('/api/tickets/:id/comments', (req, res) => {
     const { comment, user_type } = req.body;
-    
-    if (!comment || !user_type) {
-        res.status(400).json({ error: 'Comment and user_type are required' });
-        return;
-    }
+    if (!comment || !user_type)
+        return res.status(400).json({ error: 'Comment and user_type are required' });
 
-    const query = 'INSERT INTO comments (ticket_id, comment, user_type) VALUES (?, ?, ?)';
-    
-    db.run(query, [req.params.id, comment, user_type], function(err) {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
+    db.run('INSERT INTO comments (ticket_id, comment, user_type) VALUES (?, ?, ?)',
+        [req.params.id, comment, user_type],
+        function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            db.run('UPDATE tickets SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [req.params.id]);
+            res.json({ id: this.lastID, message: 'Comment added successfully' });
         }
-        
-        // Update ticket's updated_at timestamp
-        db.run('UPDATE tickets SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [req.params.id]);
-        
-        res.json({
-            id: this.lastID,
-            message: 'Comment added successfully'
-        });
-    });
+    );
 });
 
-// Delete ticket (optional - for cleanup)
+// API: Delete ticket
 app.delete('/api/tickets/:id', (req, res) => {
-    // First delete all comments
     db.run('DELETE FROM comments WHERE ticket_id = ?', [req.params.id], (err) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        
-        // Then delete the ticket
+        if (err) return res.status(500).json({ error: err.message });
+
         db.run('DELETE FROM tickets WHERE id = ?', [req.params.id], function(err) {
-            if (err) {
-                res.status(500).json({ error: err.message });
-                return;
-            }
-            
-            if (this.changes === 0) {
-                res.status(404).json({ error: 'Ticket not found' });
-                return;
-            }
-            
+            if (err) return res.status(500).json({ error: err.message });
+            if (this.changes === 0) return res.status(404).json({ error: 'Ticket not found' });
             res.json({ message: 'Ticket deleted successfully' });
         });
     });
 });
 
-// Get statistics
+// API: Stats
 app.get('/api/stats', (req, res) => {
     const queries = {
         total: 'SELECT COUNT(*) as count FROM tickets',
@@ -267,33 +193,22 @@ app.get('/api/stats', (req, res) => {
 
     Object.keys(queries).forEach(key => {
         db.get(queries[key], [], (err, row) => {
-            if (!err) {
-                stats[key] = row.count;
-            }
+            if (!err) stats[key] = row.count;
             completed++;
-            
-            if (completed === Object.keys(queries).length) {
-                res.json(stats);
-            }
+            if (completed === Object.keys(queries).length) res.json(stats);
         });
     });
 });
 
-// Debug endpoint to view database tables
+// API: Debug data dump
 app.get('/api/debug/tables', (req, res) => {
     db.all('SELECT * FROM tickets', [], (err, tickets) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
+        if (err) return res.status(500).json({ error: err.message });
         db.all('SELECT * FROM comments', [], (err2, comments) => {
-            if (err2) {
-                res.status(500).json({ error: err2.message });
-                return;
-            }
+            if (err2) return res.status(500).json({ error: err2.message });
             res.json({
-                tickets: tickets,
-                comments: comments,
+                tickets,
+                comments,
                 total_tickets: tickets.length,
                 total_comments: comments.length
             });
@@ -303,19 +218,15 @@ app.get('/api/debug/tables', (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-    console.log(`\n🚀 Helpdesk Server Running`);
-    console.log(`📍 Server: http://localhost:${PORT}`);
-    console.log(`📊 API: http://localhost:${PORT}/api`);
-    console.log(`\n👤 User Portal: Open index.html in browser`);
-    console.log(`🔧 Admin Panel: Open admin.html in browser\n`);
+    console.log(`\n🚀 HelpDesk server running`);
+    console.log(`🌍 Live URL: https://helpdesk-qn01.onrender.com`);
+    console.log(`📊 API root: /api`);
 });
 
 // Graceful shutdown
 process.on('SIGINT', () => {
     db.close((err) => {
-        if (err) {
-            console.error('Error closing database:', err.message);
-        }
+        if (err) console.error('Error closing database:', err.message);
         console.log('\n✅ Database connection closed');
         console.log('👋 Server shut down gracefully\n');
         process.exit(0);
