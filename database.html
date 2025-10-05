@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Viewer - Helpdesk System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .btn {
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: white;
+            color: #f5576c;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #f5576c;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .table-header h2 {
+            color: #333;
+            font-size: 1.8rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f8f9fa;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid #dee2e6;
+            color: #666;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .status-open { background: #fff3cd; color: #856404; }
+        .status-in-progress { background: #cce5ff; color: #004085; }
+        .status-resolved { background: #d4edda; color: #155724; }
+        .status-closed { background: #d6d8db; color: #383d41; }
+
+        .priority-high { color: #dc3545; font-weight: 600; }
+        .priority-medium { color: #ffc107; font-weight: 600; }
+        .priority-low { color: #28a745; font-weight: 600; }
+
+        .user-type {
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .user-type-admin { background: #e7f3ff; color: #0066cc; }
+        .user-type-user { background: #f0f0f0; color: #666; }
+        .user-type-system { background: #fff3e0; color: #e65100; }
+
+        .no-data {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #f5576c;
+            font-size: 1.2rem;
+        }
+
+        .truncate {
+            max-width: 300px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .date-time {
+            font-size: 0.9rem;
+            color: #888;
+        }
+
+        .id-badge {
+            background: #f5576c;
+            color: white;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🗄️ Database Viewer</h1>
+            <p>View all tables and data</p>
+        </header>
+
+        <div class="nav-buttons">
+            <button class="btn btn-primary" onclick="loadData()">🔄 Refresh Data</button>
+            <button class="btn btn-primary" onclick="window.location.href='/'">👤 User Portal</button>
+            <button class="btn btn-primary" onclick="window.location.href='/admin'">🔧 Admin Panel</button>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalTickets">-</div>
+                <div class="stat-label">Total Tickets</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalComments">-</div>
+                <div class="stat-label">Total Comments</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="openTickets">-</div>
+                <div class="stat-label">Open Tickets</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="resolvedTickets">-</div>
+                <div class="stat-label">Resolved Tickets</div>
+            </div>
+        </div>
+
+        <!-- Tickets Table -->
+        <div class="table-container">
+            <div class="table-header">
+                <h2>📋 Tickets Table</h2>
+            </div>
+            <div id="ticketsTable">
+                <div class="loading">Loading tickets...</div>
+            </div>
+        </div>
+
+        <!-- Comments Table -->
+        <div class="table-container">
+            <div class="table-header">
+                <h2>💬 Comments Table</h2>
+            </div>
+            <div id="commentsTable">
+                <div class="loading">Loading comments...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api';
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+        });
+
+        async function loadData() {
+            try {
+                const response = await fetch(`${API_URL}/debug/tables`);
+                const data = await response.json();
+                
+                // Update stats
+                document.getElementById('totalTickets').textContent = data.total_tickets;
+                document.getElementById('totalComments').textContent = data.total_comments;
+                document.getElementById('openTickets').textContent = 
+                    data.tickets.filter(t => t.status === 'Open').length;
+                document.getElementById('resolvedTickets').textContent = 
+                    data.tickets.filter(t => t.status === 'Resolved').length;
+                
+                // Display tables
+                displayTickets(data.tickets);
+                displayComments(data.comments);
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.getElementById('ticketsTable').innerHTML = 
+                    '<div class="no-data">❌ Error loading data. Make sure the server is running.</div>';
+                document.getElementById('commentsTable').innerHTML = 
+                    '<div class="no-data">❌ Error loading data.</div>';
+            }
+        }
+
+        function displayTickets(tickets) {
+            const container = document.getElementById('ticketsTable');
+            
+            if (tickets.length === 0) {
+                container.innerHTML = '<div class="no-data">No tickets in database</div>';
+                return;
+            }
+
+            const table = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Title</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Created At</th>
+                            <th>SLA Due</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tickets.map(ticket => `
+                            <tr>
+                                <td><span class="id-badge">#${ticket.id}</span></td>
+                                <td><strong>${ticket.title}</strong></td>
+                                <td><div class="truncate" title="${ticket.description}">${ticket.description}</div></td>
+                                <td>${ticket.category}</td>
+                                <td class="priority-${ticket.priority.toLowerCase()}">${ticket.priority}</td>
+                                <td><span class="status-badge status-${ticket.status.toLowerCase().replace(' ', '-')}">${ticket.status}</span></td>
+                                <td class="date-time">${formatDate(ticket.created_at)}</td>
+                                <td class="date-time">${formatDate(ticket.sla_due_date)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = table;
+        }
+
+        function displayComments(comments) {
+            const container = document.getElementById('commentsTable');
+            
+            if (comments.length === 0) {
+                container.innerHTML = '<div class="no-data">No comments in database</div>';
+                return;
+            }
+
+            const table = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Ticket ID</th>
+                            <th>Comment</th>
+                            <th>User Type</th>
+                            <th>Created At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${comments.map(comment => `
+                            <tr>
+                                <td><span class="id-badge">#${comment.id}</span></td>
+                                <td><span class="id-badge">#${comment.ticket_id}</span></td>
+                                <td>${comment.comment}</td>
+                                <td><span class="user-type user-type-${comment.user_type}">${comment.user_type}</span></td>
+                                <td class="date-time">${formatDate(comment.created_at)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = table;
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+    </script>
+</body>
+</html>

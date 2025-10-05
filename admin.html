@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Helpdesk System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #f5576c;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .filters {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-group label {
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .filter-group select {
+            padding: 0.6rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .tickets-container {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .tickets-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn {
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: #f5576c;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #e04555;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .ticket-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid #f5576c;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .ticket-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .ticket-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1rem;
+        }
+
+        .ticket-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .ticket-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.9rem;
+            color: #666;
+            flex-wrap: wrap;
+        }
+
+        .status-badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-open { background: #fff3cd; color: #856404; }
+        .status-in-progress { background: #cce5ff; color: #004085; }
+        .status-resolved { background: #d4edda; color: #155724; }
+        .status-closed { background: #d6d8db; color: #383d41; }
+
+        .priority-high { color: #dc3545; font-weight: 600; }
+        .priority-medium { color: #ffc107; font-weight: 600; }
+        .priority-low { color: #28a745; font-weight: 600; }
+
+        .sla-indicator {
+            font-size: 0.85rem;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .sla-ok { background: #d4edda; color: #155724; }
+        .sla-warning { background: #fff3cd; color: #856404; }
+        .sla-breach { background: #f8d7da; color: #721c24; }
+
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .popup-overlay.active {
+            display: flex;
+            animation: fadeInOverlay 0.3s ease forwards;
+        }
+
+        @keyframes fadeInOverlay {
+            to { opacity: 1; }
+        }
+
+        .popup-content {
+            background: white;
+            width: 90%;
+            max-width: 900px;
+            max-height: 90vh;
+            border-radius: 16px;
+            overflow: hidden;
+            transform: scale(0.7);
+            opacity: 0;
+            animation: popupOpen 0.5s ease-in-out forwards;
+        }
+
+        @keyframes popupOpen {
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .popup-header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .popup-header h2 {
+            font-size: 1.8rem;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .close-btn:hover {
+            transform: rotate(90deg);
+        }
+
+        .popup-body {
+            padding: 2rem;
+            max-height: calc(90vh - 100px);
+            overflow-y: auto;
+        }
+
+        .ticket-details {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #666;
+        }
+
+        .detail-value {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #f5576c;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .comments-section {
+            margin-top: 2rem;
+            border-top: 2px solid #e0e0e0;
+            padding-top: 1.5rem;
+        }
+
+        .comment {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .comment-body {
+            color: #333;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .no-tickets {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        /* Loading and Success Notifications */
+        .notification-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .notification-overlay.active {
+            display: flex;
+            animation: fadeInOverlay 0.3s ease forwards;
+        }
+
+        .notification-content {
+            background: white;
+            padding: 3rem;
+            border-radius: 20px;
+            text-align: center;
+            min-width: 350px;
+            transform: scale(0.7);
+            animation: bounceIn 0.5s ease-in-out forwards;
+        }
+
+        @keyframes bounceIn {
+            0% {
+                transform: scale(0.7);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .loader {
+            width: 60px;
+            height: 60px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #f5576c;
+            border-radius: 50%;
+            margin: 0 auto 1.5rem;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.5rem;
+            background: #4CAF50;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: scaleUp 0.5s ease-in-out;
+        }
+
+        @keyframes scaleUp {
+            0% {
+                transform: scale(0);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .success-icon::after {
+            content: '✓';
+            font-size: 3rem;
+            color: white;
+            font-weight: bold;
+        }
+
+        .notification-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .notification-message {
+            font-size: 1rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Admin Control Panel</h1>
+            <p>Manage and resolve support tickets</p>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalTickets">0</div>
+                <div class="stat-label">Total Tickets</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="openTickets">0</div>
+                <div class="stat-label">Open Tickets</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="inProgressTickets">0</div>
+                <div class="stat-label">In Progress</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="resolvedTickets">0</div>
+                <div class="stat-label">Resolved</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="slaBreaches">0</div>
+                <div class="stat-label">SLA Breaches</div>
+            </div>
+        </div>
+
+        <div class="filters">
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label>Status</label>
+                    <select id="filterStatus" onchange="loadTickets()">
+                        <option value="">All Status</option>
+                        <option value="Open">Open</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Resolved">Resolved</option>
+                        <option value="Closed">Closed</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Priority</label>
+                    <select id="filterPriority" onchange="loadTickets()">
+                        <option value="">All Priorities</option>
+                        <option value="High">High</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Low">Low</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Category</label>
+                    <select id="filterCategory" onchange="loadTickets()">
+                        <option value="">All Categories</option>
+                        <option value="Technical">Technical</option>
+                        <option value="Billing">Billing</option>
+                        <option value="General">General</option>
+                        <option value="Feature Request">Feature Request</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>SLA Status</label>
+                    <select id="filterSLA" onchange="loadTickets()">
+                        <option value="">All</option>
+                        <option value="breach">Breached</option>
+                        <option value="warning">At Risk</option>
+                        <option value="ok">On Track</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="tickets-container">
+            <div class="tickets-header">
+                <h2>All Tickets</h2>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-secondary" onclick="loadTickets()">Refresh</button>
+                    <button class="btn btn-primary" onclick="window.location.href='/'">User View</button>
+                </div>
+            </div>
+            <div id="ticketsList"></div>
+        </div>
+    </div>
+
+    <!-- Ticket Management Popup -->
+    <div class="popup-overlay" id="ticketPopup">
+        <div class="popup-content">
+            <div class="popup-header">
+                <h2 id="popupTitle">Ticket Details</h2>
+                <button class="close-btn" onclick="closePopup()">&times;</button>
+            </div>
+            <div class="popup-body">
+                <div class="ticket-details" id="ticketDetails"></div>
+                
+                <div class="form-group">
+                    <label>Update Status</label>
+                    <select id="ticketStatus">
+                        <option value="Open">Open</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Resolved">Resolved</option>
+                        <option value="Closed">Closed</option>
+                    </select>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="updateTicketStatus()">Update Status</button>
+                </div>
+
+                <div class="comments-section">
+                    <h3>Comments & Activity</h3>
+                    <div id="commentsList"></div>
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <textarea id="newComment" placeholder="Add admin response or notes..."></textarea>
+                        <button class="btn btn-primary" onclick="addComment()" style="margin-top: 0.5rem;">Add Comment</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading/Success Notification -->
+    <div class="notification-overlay" id="notificationOverlay">
+        <div class="notification-content" id="notificationContent">
+            <!-- Content will be dynamically inserted -->
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api';
+        let currentTicketId = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTickets();
+            updateStats();
+        });
+
+        // Notification functions
+        function showLoadingNotification(message = 'Processing...') {
+            const content = `
+                <div class="loader"></div>
+                <div class="notification-title">${message}</div>
+                <div class="notification-message">Please wait while we process your request</div>
+            `;
+            document.getElementById('notificationContent').innerHTML = content;
+            document.getElementById('notificationOverlay').classList.add('active');
+        }
+
+        function showSuccessNotification(message) {
+            const content = `
+                <div class="success-icon"></div>
+                <div class="notification-title">Success!</div>
+                <div class="notification-message">${message}</div>
+            `;
+            document.getElementById('notificationContent').innerHTML = content;
+            
+            setTimeout(() => {
+                closeNotification();
+            }, 2000);
+        }
+
+        function closeNotification() {
+            document.getElementById('notificationOverlay').classList.remove('active');
+        }
+
+        async function loadTickets() {
+            try {
+                const response = await fetch(`${API_URL}/tickets`);
+                let tickets = await response.json();
+                
+                const statusFilter = document.getElementById('filterStatus').value;
+                const priorityFilter = document.getElementById('filterPriority').value;
+                const categoryFilter = document.getElementById('filterCategory').value;
+                const slaFilter = document.getElementById('filterSLA').value;
+
+                if (statusFilter) tickets = tickets.filter(t => t.status === statusFilter);
+                if (priorityFilter) tickets = tickets.filter(t => t.priority === priorityFilter);
+                if (categoryFilter) tickets = tickets.filter(t => t.category === categoryFilter);
+                if (slaFilter) tickets = tickets.filter(t => getSLAStatus(t.sla_due_date) === slaFilter);
+
+                displayTickets(tickets);
+                updateStats();
+            } catch (error) {
+                console.error('Error loading tickets:', error);
+                document.getElementById('ticketsList').innerHTML = 
+                    '<p class="no-tickets">Error loading tickets. Please ensure the server is running.</p>';
+            }
+        }
+
+        function displayTickets(tickets) {
+            const container = document.getElementById('ticketsList');
+            
+            if (tickets.length === 0) {
+                container.innerHTML = '<p class="no-tickets">No tickets match the current filters.</p>';
+                return;
+            }
+
+            container.innerHTML = tickets.map(ticket => `
+                <div class="ticket-card" onclick="viewTicket(${ticket.id})">
+                    <div class="ticket-header">
+                        <div>
+                            <div class="ticket-title">${ticket.title}</div>
+                            <div class="ticket-meta">
+                                <span>Ticket #${ticket.id}</span>
+                                <span>Category: ${ticket.category}</span>
+                                <span class="priority-${ticket.priority.toLowerCase()}">Priority: ${ticket.priority}</span>
+                                <span>Created: ${new Date(ticket.created_at).toLocaleString()}</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; flex-direction: column; align-items: flex-end;">
+                            <span class="status-badge status-${ticket.status.toLowerCase().replace(' ', '-')}">${ticket.status}</span>
+                            <span class="sla-indicator sla-${getSLAStatus(ticket.sla_due_date)}">${getSLAText(ticket.sla_due_date)}</span>
+                        </div>
+                    </div>
+                    <p style="color: #666; margin-top: 0.5rem;">${ticket.description.substring(0, 150)}${ticket.description.length > 150 ? '...' : ''}</p>
+                </div>
+            `).join('');
+        }
+
+        function getSLAStatus(dueDate) {
+            const now = new Date();
+            const due = new Date(dueDate);
+            const hoursLeft = (due - now) / (1000 * 60 * 60);
+            
+            if (hoursLeft < 0) return 'breach';
+            if (hoursLeft < 4) return 'warning';
+            return 'ok';
+        }
+
+        function getSLAText(dueDate) {
+            const now = new Date();
+            const due = new Date(dueDate);
+            const hoursLeft = Math.floor((due - now) / (1000 * 60 * 60));
+            
+            if (hoursLeft < 0) return `Breached ${Math.abs(hoursLeft)}h ago`;
+            if (hoursLeft < 1) return 'Due in < 1 hour';
+            return `${hoursLeft}h remaining`;
+        }
+
+        async function updateStats() {
+            try {
+                const response = await fetch(`${API_URL}/tickets`);
+                const tickets = await response.json();
+                
+                document.getElementById('totalTickets').textContent = tickets.length;
+                document.getElementById('openTickets').textContent = tickets.filter(t => t.status === 'Open').length;
+                document.getElementById('inProgressTickets').textContent = tickets.filter(t => t.status === 'In Progress').length;
+                document.getElementById('resolvedTickets').textContent = tickets.filter(t => t.status === 'Resolved').length;
+                document.getElementById('slaBreaches').textContent = tickets.filter(t => getSLAStatus(t.sla_due_date) === 'breach').length;
+            } catch (error) {
+                console.error('Error updating stats:', error);
+            }
+        }
+
+        async function viewTicket(id) {
+            try {
+                currentTicketId = id;
+                const response = await fetch(`${API_URL}/tickets/${id}`);
+                const ticket = await response.json();
+                
+                document.getElementById('popupTitle').textContent = `Ticket #${ticket.id}`;
+                document.getElementById('ticketStatus').value = ticket.status;
+                
+                const slaStatus = getSLAStatus(ticket.sla_due_date);
+                const slaClass = `sla-${slaStatus}`;
+                
+                document.getElementById('ticketDetails').innerHTML = `
+                    <div class="detail-row">
+                        <span class="detail-label">Title:</span>
+                        <span class="detail-value">${ticket.title}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Description:</span>
+                        <span class="detail-value">${ticket.description}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Category:</span>
+                        <span class="detail-value">${ticket.category}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Priority:</span>
+                        <span class="detail-value priority-${ticket.priority.toLowerCase()}">${ticket.priority}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Status:</span>
+                        <span class="detail-value"><span class="status-badge status-${ticket.status.toLowerCase().replace(' ', '-')}">${ticket.status}</span></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Created:</span>
+                        <span class="detail-value">${new Date(ticket.created_at).toLocaleString()}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">SLA Due:</span>
+                        <span class="detail-value"><span class="sla-indicator ${slaClass}">${getSLAText(ticket.sla_due_date)}</span></span>
+                    </div>
+                `;
+                
+                const commentsResponse = await fetch(`${API_URL}/tickets/${id}/comments`);
+                const comments = await commentsResponse.json();
+                displayComments(comments);
+                
+                document.getElementById('ticketPopup').classList.add('active');
+            } catch (error) {
+                console.error('Error loading ticket:', error);
+            }
+        }
+
+        function displayComments(comments) {
+            const container = document.getElementById('commentsList');
+            
+            if (comments.length === 0) {
+                container.innerHTML = '<p style="color: #666; text-align: center; padding: 1rem;">No comments yet</p>';
+                return;
+            }
+
+            container.innerHTML = comments.map(comment => `
+                <div class="comment">
+                    <div class="comment-header">
+                        <strong>${comment.user_type === 'admin' ? 'Admin' : comment.user_type === 'system' ? 'System' : 'User'}</strong>
+                        <span>${new Date(comment.created_at).toLocaleString()}</span>
+                    </div>
+                    <div class="comment-body">${comment.comment}</div>
+                </div>
+            `).join('');
+        }
+
+        async function updateTicketStatus() {
+            const status = document.getElementById('ticketStatus').value;
+            
+            showLoadingNotification('Updating Status...');
+
+            try {
+                const response = await fetch(`${API_URL}/tickets/${currentTicketId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status })
+                });
+
+                if (response.ok) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    showSuccessNotification('Ticket status updated successfully!');
+                    
+                    setTimeout(() => {
+                        closePopup();
+                        loadTickets();
+                    }, 2200);
+                } else {
+                    closeNotification();
+                }
+            } catch (error) {
+                console.error('Error updating ticket:', error);
+                closeNotification();
+            }
+        }
+
+        async function addComment() {
+            const comment = document.getElementById('newComment').value.trim();
+            
+            if (!comment) {
+                return;
+            }
+
+            showLoadingNotification('Adding Comment...');
+
+            try {
+                const response = await fetch(`${API_URL}/tickets/${currentTicketId}/comments`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ comment, user_type: 'admin' })
+                });
+
+                if (response.ok) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    showSuccessNotification('Comment added successfully!');
+                    
+                    document.getElementById('newComment').value = '';
+                    const commentsResponse = await fetch(`${API_URL}/tickets/${currentTicketId}/comments`);
+                    const comments = await commentsResponse.json();
+                    displayComments(comments);
+                    
+                    setTimeout(() => {
+                        closeNotification();
+                    }, 2000);
+                }
+            } catch (error) {
+                console.error('Error adding comment:', error);
+                closeNotification();
+            }
+        }
+
+        function closePopup() {
+            document.getElementById('ticketPopup').classList.remove('active');
+            currentTicketId = null;
+        }
+    </script>
+</body>
+</html>
