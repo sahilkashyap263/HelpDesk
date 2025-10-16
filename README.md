@@ -310,7 +310,3 @@ If you encounter any issues:
 3. Ensure all dependencies are installed
 4. Verify the server is running
 
----
-
-**Enjoy your new Helpdesk System! 🎫✨**# HelpDesk-Project
-# HelpDesk-Project
