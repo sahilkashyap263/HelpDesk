@@ -205,7 +205,6 @@ SLA status indicators:
 ### HTML files show "Error loading tickets"
 - Make sure the server is running (`npm start`)
 - Check browser console for errors
-- Verify the API URL is correct (http://localhost:3000/api)
 
 ### Database issues
 - Delete `helpdesk.db` file and restart server (will create fresh database)
