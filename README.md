@@ -1,11 +1,6 @@
 # 🎫 Helpdesk System
 
 A modern, easy-to-use helpdesk ticketing system for managing customer support requests with SLA tracking.
-<img width="1894" height="1044" alt="{49EF559F-A13E-4C67-999E-3F3EBBC20022}" src="https://github.com/user-attachments/assets/a9fac2d7-a0eb-4e93-84be-d4f8b511bb10" />
-
-<img width="1898" height="875" alt="{A7265635-B67A-4EA4-91E5-C44F6AC578A1}" src="https://github.com/user-attachments/assets/13d5bb5f-d653-42e6-81d9-f2ab05cd8bdc" />
-
-
 
 ![Status](https://img.shields.io/badge/status-active-success.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
@@ -142,8 +137,12 @@ This application can be deployed to any cloud platform. The system automatically
 ### User Portal
 Modern interface for creating and tracking support tickets.
 
+<img width="1894" height="1044" alt="{49EF559F-A13E-4C67-999E-3F3EBBC20022}" src="https://github.com/user-attachments/assets/a9fac2d7-a0eb-4e93-84be-d4f8b511bb10" />
+
 ### Admin Dashboard
 Comprehensive view of all tickets with filtering and management tools.
+
+<img width="1898" height="875" alt="{A7265635-B67A-4EA4-91E5-C44F6AC578A1}" src="https://github.com/user-attachments/assets/13d5bb5f-d653-42e6-81d9-f2ab05cd8bdc" />
 
 ### Database Viewer
 Real-time view of all system data and statistics.
